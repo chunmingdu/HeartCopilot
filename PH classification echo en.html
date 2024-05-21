@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echocardiographic Tool for Differentiating Pre- and Post-Capillary Pulmonary Hypertension</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin: 10px 0 5px;
+        }
+        input {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .reference {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fafafa;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Echocardiographic Tool for Differentiating Pre- and Post-Capillary Pulmonary Hypertension</h1>
+        <h2>Method Description</h2>
+        <p>This tool is used to assess left ventricular filling pressure and types of pulmonary hypertension, based on mitral E/A ratio, early diastolic velocity E, and left atrial reservoir strain (LA reservoir strain).</p>
+        <form id="assessmentForm">
+            <label for="mitralEA">Mitral E/A Ratio:</label>
+            <input type="number" step="0.01" id="mitralEA" required oninput="handleInput()">
+            
+            <label for="eVelocity">Early Diastolic Velocity E (cm/s):</label>
+            <input type="number" step="0.1" id="eVelocity" required oninput="handleInput()">
+            
+            <label for="laStrain">Left Atrial Reservoir Strain (%):</label>
+            <input type="number" step="0.1" id="laStrain">
+            
+            <label>
+                <input type="checkbox" id="laStrainUnavailable" onchange="handleCheckboxChange()">
+                LA Reservoir Strain Unavailable
+            </label>
+            
+            <div id="lateralEeContainer" style="display:none;">
+                <label for="lateralEe">Lateral E/e':</label>
+                <input type="number" step="0.1" id="lateralEe">
+            </div>
+            
+            <button type="button" onclick="assessPH()">Assess</button>
+        </form>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="reference">
+            <h2>References</h2>
+            <p>Inoue K, Andersen OS, Remme EW, et al. Echocardiographic Evaluation of Left Ventricular Filling Pressure in Patients With Pulmonary Hypertension. JACC Cardiovasc Imaging. 2024;17(5):566-567. doi:10.1016/j.jcmg.2023.12.004</p>
+        </div>
+
+        <div class="footer">
+            <p>HeartCopilot</p>
+        </div>
+    </div>
+
+    <script>
+        function handleInput() {
+            const mitralEA = parseFloat(document.getElementById('mitralEA').value);
+            const eVelocity = document.getElementById('eVelocity');
+            const laStrain = document.getElementById('laStrain');
+            const laStrainUnavailable = document.getElementById('laStrainUnavailable');
+            
+            if (mitralEA > 0.8) {
+                eVelocity.disabled = true;
+                eVelocity.value = '';
+            } else {
+                eVelocity.disabled = false;
+            }
+
+            if (mitralEA >= 2.0 || (mitralEA <= 0.8 && (!eVelocity.value || parseFloat(eVelocity.value) <= 50))) {
+                laStrain.disabled = true;
+                laStrain.value = '';
+                laStrainUnavailable.disabled = true;
+                laStrainUnavailable.checked = false;
+                handleCheckboxChange(); // Ensure the lateral E/e' input is hidden
+            } else {
+                laStrain.disabled = false;
+                laStrainUnavailable.disabled = false;
+            }
+        }
+
+        function handleCheckboxChange() {
+            const lateralEeContainer = document.getElementById('lateralEeContainer');
+            if (document.getElementById('laStrainUnavailable').checked) {
+                lateralEeContainer.style.display = 'block';
+            } else {
+                lateralEeContainer.style.display = 'none';
+            }
+        }
+
+        function assessPH() {
+            const mitralEA = parseFloat(document.getElementById('mitralEA').value);
+            const eVelocity = parseFloat(document.getElementById('eVelocity').value);
+            const laStrain = parseFloat(document.getElementById('laStrain').value);
+            const laStrainUnavailable = document.getElementById('laStrainUnavailable').checked;
+            const lateralEe = parseFloat(document.getElementById('lateralEe').value);
+            let resultText = '';
+
+            if (mitralEA <= 0.8) {
+                if (eVelocity < 50) {
+                    resultText = 'Left ventricular filling pressure is normal, likely pre-capillary pulmonary hypertension (pre-capillary PH).';
+                } else {
+                    // Further evaluation using E/A 0.8-2.0 criteria
+                    if (!laStrainUnavailable && !isNaN(laStrain)) {
+                        if (laStrain >= 16) {
+                            resultText = 'Left ventricular filling pressure is normal, likely pre-capillary pulmonary hypertension (pre-capillary PH).';
+                        } else if (laStrain < 16) {
+                            resultText = 'Left ventricular filling pressure is elevated, likely post-capillary pulmonary hypertension (post-capillary PH).';
+                        } else {
+                            resultText = 'LA reservoir strain data missing, unable to further assess.';
+                        }
+                    } else if (laStrainUnavailable && !isNaN(lateralEe)) {
+                        if (lateralEe < 8) {
+                            resultText = 'Left ventricular filling pressure is normal, likely pre-capillary pulmonary hypertension (pre-capillary PH).';
+                        } else if (lateralEe > 13) {
+                            resultText = 'Left ventricular filling pressure is elevated, likely post-capillary pulmonary hypertension (post-capillary PH).';
+                        } else {
+                            resultText = 'Lateral E/e\' between 8-13, result is indeterminate.';
+                        }
+                    } else {
+                        resultText = 'LA reservoir strain and lateral E/e\' data missing, unable to further assess.';
+                    }
+                }
+            } else if (mitralEA >= 2.0) {
+                resultText = 'Left ventricular filling pressure is elevated, likely post-capillary pulmonary hypertension (post-capillary PH). Usually only valid when lateral e\' is reduced in younger subjects (under 40).';
+            } else {
+                if (!laStrainUnavailable && !isNaN(laStrain)) {
+                    if (laStrain >= 16) {
+                        resultText = 'Left ventricular filling pressure is normal, likely pre-capillary pulmonary hypertension (pre-capillary PH).';
+                    } else if (laStrain < 16) {
+                        resultText = 'Left ventricular filling pressure is elevated, likely post-capillary pulmonary hypertension (post-capillary PH).';
+                    } else {
+                        resultText = 'LA reservoir strain data missing, unable to further assess.';
+                    }
+                } else if (laStrainUnavailable && !isNaN(lateralEe)) {
+                    if (lateralEe < 8) {
+                        resultText = 'Left ventricular filling pressure is normal, likely pre-capillary pulmonary hypertension (pre-capillary PH).';
+                    } else if (lateralEe > 13) {
+                        resultText = 'Left ventricular filling pressure is elevated, likely post-capillary pulmonary hypertension (post-capillary PH).';
+                    } else {
+                        resultText = 'Lateral E/e\' between 8-13, result is indeterminate.';
+                    }
+                } else {
+                    resultText = 'LA reservoir strain and lateral E/e\' data missing, unable to further assess.';
+                }
+            }
+            document.getElementById('result').innerText = resultText;
+        }
+    </script>
+</body>
+</html>
+```
